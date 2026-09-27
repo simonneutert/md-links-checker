@@ -8,8 +8,8 @@
  * everything. Files named on the command line are always checked.
  *
  * ```sh
- * deno run -R --allow-run=git jsr:@simonneutert/md-links README.md docs
- * deno run -R jsr:@simonneutert/md-links --no-gitignore docs
+ * deno run -R --allow-run=git jsr:@simonneutert/md-links-checker README.md docs
+ * deno run -R jsr:@simonneutert/md-links-checker --no-gitignore docs
  * ```
  *
  * @module

@@ -1,5 +1,5 @@
 {
-  "name": "@simonneutert/md-links",
+  "name": "@simonneutert/md-links-checker",
   "version": "0.1.0",
   "license": "MIT",
   "exports": "./mod.ts",
