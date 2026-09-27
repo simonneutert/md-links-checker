@@ -11,9 +11,9 @@ jobs:
       contents: read
       id-token: write # OIDC auth with JSR, no token needed
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
       - run: deno task test
-      - run: deno publish
+      - run: npx jsr publish
