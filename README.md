@@ -22,10 +22,19 @@ your choice.
 
 ## Usage
 
+Basic usage:
+
 ```sh
 # Check the current directory
 deno run -R --allow-run=git jsr:@simonneutert/md-links-checker
 
+# `-r` to reload the checker from JSR and check the current directory
+deno run -r -R --allow-run=git jsr:@simonneutert/md-links-checker
+```
+
+More specific examples with flags and paths:
+
+```sh
 # Check specific files and directories
 deno run -R --allow-run=git jsr:@simonneutert/md-links-checker README.md docs
 
