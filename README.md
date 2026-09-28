@@ -20,37 +20,6 @@ ignored. See [Limitations](#limitations) for what else is not covered.
 review them, but fetching them is out of scope: pipe the list into a tool of
 your choice.
 
-## Requirements
-
-- [Deno](https://deno.com) 2. The only other dependency, `@std/path`, is fetched
-  from JSR on the first run.
-- Git is optional. Inside a Git repository, it decides which files to check and
-  where links starting with `/` resolve from. Without Git, or with
-  `--no-gitignore`, the checker walks directories itself.
-
-Deno permissions:
-
-| Flag              | Why                                                                      |
-| ----------------- | ------------------------------------------------------------------------ |
-| `-R`              | Read the Markdown files. Always needed.                                  |
-| `--allow-run=git` | Run `git ls-files` and `git rev-parse`. Leave out with `--no-gitignore`. |
-
-Without `--allow-run=git` (and without `--no-gitignore`), Deno asks for
-permission in a terminal and fails in CI.
-
-How the files to check are found:
-
-```mermaid
-flowchart TD
-  arg[Path argument] --> file{A file?}
-  file -- yes --> checked[Checked, whatever its name]
-  file -- "no, a directory" --> flag{--no-gitignore?}
-  flag -- no --> git{Git repository<br>and git installed?}
-  git -- yes --> listed["Markdown files Git tracks or doesn't ignore"]
-  git -- no --> walk["Markdown files, skipping dot folders and node_modules"]
-  flag -- yes --> walk
-```
-
 ## Usage
 
 ```sh
@@ -151,6 +120,37 @@ out of scope:
 - **Heading anchors** can differ from GitHub's for `_underscore emphasis_` in a
   heading (the underscores are kept) and for setext headings spanning several
   lines (only the last line counts).
+
+## Requirements
+
+- [Deno](https://deno.com) 2. The only other dependency, `@std/path`, is fetched
+  from JSR on the first run.
+- Git is optional. Inside a Git repository, it decides which files to check and
+  where links starting with `/` resolve from. Without Git, or with
+  `--no-gitignore`, the checker walks directories itself.
+
+Deno permissions:
+
+| Flag              | Why                                                                      |
+| ----------------- | ------------------------------------------------------------------------ |
+| `-R`              | Read the Markdown files. Always needed.                                  |
+| `--allow-run=git` | Run `git ls-files` and `git rev-parse`. Leave out with `--no-gitignore`. |
+
+Without `--allow-run=git` (and without `--no-gitignore`), Deno asks for
+permission in a terminal and fails in CI.
+
+How the files to check are found:
+
+```mermaid
+flowchart TD
+  arg[Path argument] --> file{A file?}
+  file -- yes --> checked[Checked, whatever its name]
+  file -- "no, a directory" --> flag{--no-gitignore?}
+  flag -- no --> git{Git repository<br>and git installed?}
+  git -- yes --> listed["Markdown files Git tracks or doesn't ignore"]
+  git -- no --> walk["Markdown files, skipping dot folders and node_modules"]
+  flag -- yes --> walk
+```
 
 ## License
 
