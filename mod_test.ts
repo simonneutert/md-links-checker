@@ -290,3 +290,28 @@ Deno.test("the CLI checks a file once, and exits 2 on a bad argument", async () 
     });
   });
 });
+
+Deno.test("the CLI resolves / links from --root", async () => {
+  const files = {
+    "posts/a.md":
+      "[img](/images/x.png) [post](/posts/foo/) [gone](/gone.html)\n",
+    "dist/images/x.png": "",
+    "dist/posts/foo/index.html": "",
+  };
+  await withFiles(files, async (dir) => {
+    const file = join(dir, "posts/a.md");
+    const problem = `${file}:1: /gone.html (missing file)\n`;
+    for (
+      const args of [["--root", join(dir, "dist")], [`--root=${dir}/dist`]]
+    ) {
+      const { code, stderr } = await cli(...args, file);
+      assertEquals({ code, stderr }, { code: 1, stderr: problem });
+    }
+    assertEquals(await cli("--root", join(dir, "nope"), file), {
+      code: 2,
+      stdout: "",
+      stderr: `Not a directory: ${join(dir, "nope")}\n`,
+    });
+    assertEquals((await cli(file, "--root")).code, 2);
+  });
+});

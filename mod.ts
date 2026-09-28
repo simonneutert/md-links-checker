@@ -12,13 +12,17 @@
  * checked.
  *
  * `--external` lists the links with a scheme without checking them; `--json`
- * prints the result as JSON on stdout.
+ * prints the result as JSON on stdout. `--root <dir>` sets where links starting
+ * with `/` resolve from: for a static site, check the posts against the build
+ * output (`--root dist`, `_site` for Jekyll, `public` for Hugo) after building.
+ * Links into HTML files are checked for the file, not the anchor.
  *
  * ```sh
  * deno run -R --allow-run=git jsr:@simonneutert/md-links-checker README.md docs
  * deno run -R jsr:@simonneutert/md-links-checker --no-gitignore docs
  * deno run -R --allow-run=git jsr:@simonneutert/md-links-checker --external docs
  * deno run -R --allow-run=git jsr:@simonneutert/md-links-checker --json docs
+ * deno run -R --allow-run=git jsr:@simonneutert/md-links-checker --root dist posts
  * ```
  *
  * @module
@@ -320,7 +324,20 @@ if (import.meta.main) {
   const flags = ["--no-gitignore", "--json", "--external"];
   const gitignore = !Deno.args.includes("--no-gitignore");
   const json = Deno.args.includes("--json");
-  const paths = Deno.args.filter((arg) => !flags.includes(arg));
+  const args = [...Deno.args];
+  // `--root dist` or `--root=dist`: where `/` links resolve from.
+  let root: string | undefined;
+  const at = args.findIndex((arg) => /^--root(=|$)/.test(arg));
+  if (at >= 0) {
+    const flag = args.splice(at, 1)[0];
+    root = flag === "--root" ? args.splice(at, 1)[0] : flag.slice(7);
+    const stat = await Deno.stat(root ?? "").catch(() => null);
+    if (!stat?.isDirectory) {
+      console.error(`Not a directory: ${root ?? ""}`);
+      Deno.exit(2);
+    }
+  }
+  const paths = args.filter((arg) => !flags.includes(arg));
   const unknown = paths.find((arg) => arg.startsWith("-"));
   if (unknown) {
     console.error(`Unknown option: ${unknown}`);
@@ -338,9 +355,14 @@ if (import.meta.main) {
     }
   }
   const files = [...found];
-  // `/` links resolve from the repository root, or the current directory.
-  const top = gitignore ? await git(".", "rev-parse", "--show-toplevel") : null;
-  const root = top?.trim() || Deno.cwd();
+  // `/` links resolve from --root, the repository root, or the current
+  // directory.
+  if (root === undefined) {
+    const top = gitignore
+      ? await git(".", "rev-parse", "--show-toplevel")
+      : null;
+    root = top?.trim() || Deno.cwd();
+  }
   const problems = await checkLinks(files, { root });
   const external = Deno.args.includes("--external")
     ? await externalLinks(files)
