@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 (2026-09-28)
+
+- Added `--root <dir>` (or `--root=<dir>`), which sets where links starting with
+  `/` resolve from. For a static site, pass the build output (`--root dist`). A
+  root that is not a directory exits with `2`.
+- The README shows how to check a
+  [deno based quickblog](https://github.com/simonneutert/deno-quickblog) or
+  [Jekyll](https://jekyllrb.com/) site.
+
 ## 0.1.1 (2026-09-28)
 
 - Added `--external`, which lists links with a scheme (`https:`, `mailto:`, …).

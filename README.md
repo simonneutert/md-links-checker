@@ -35,10 +35,40 @@ deno run -R jsr:@simonneutert/md-links-checker --no-gitignore docs
 # Also list the external links, or print the result as JSON
 deno run -R --allow-run=git jsr:@simonneutert/md-links-checker --external docs
 deno run -R --allow-run=git jsr:@simonneutert/md-links-checker --json docs
+
+# Resolve links starting with `/` from a static site's build output
+deno run -R --allow-run=git jsr:@simonneutert/md-links-checker --root dist posts
 ```
 
 Links starting with `/` resolve from the root of the Git repository you run the
 checker in, or from the current directory outside Git or with `--no-gitignore`.
+`--root <dir>` resolves them from `<dir>` instead.
+
+### Static sites
+
+On a static site, `/images/x.png` or `/posts/2022/02/23/foo/` only exist in the
+build output. Build first, then check the Markdown sources with `--root` set to
+the build output. A link into an HTML page counts if the file or folder exists;
+its `#anchor` is not checked.
+
+[quickblog](https://github.com/simonneutert/deno-quickblog) builds into `dist/`,
+and copies `public/` into it:
+
+```sh
+deno run -A jsr:@simonneutert/quickblog build
+deno run -R --allow-run=git jsr:@simonneutert/md-links-checker --root dist posts
+```
+
+[Jekyll](https://jekyllrb.com) builds into `_site/`:
+
+```sh
+bundle exec jekyll build
+deno run -R --allow-run=git jsr:@simonneutert/md-links-checker --root _site _posts
+```
+
+Jekyll links written with Liquid, like `{% link _posts/x.md %}` or
+`{{ site.baseurl }}/x/`, are not understood. With a `baseurl` such as `/blog`,
+build with `--baseurl ""` so `/x/` links match `_site/x/`.
 
 Directories are walked for `.md` and `.markdown` files. Inside a Git repository,
 files Git ignores are skipped; outside one, dot folders and `node_modules` are
@@ -114,7 +144,7 @@ out of scope:
 - **Indented code blocks** (four spaces) are not recognized: links inside them
   are checked. Use fenced code blocks instead.
 - **Links starting with `/`** resolve from the Git repository you run the
-  checker in, not the one the file is in.
+  checker in, not the one the file is in, unless `--root` is given.
 - **HTML** is limited to `<a href="…">` with a quoted value. `<img src>`,
   unquoted `href=./a.md` and entities such as `&amp;` in URLs are not handled.
 - **Heading anchors** can differ from GitHub's for `_underscore emphasis_` in a
