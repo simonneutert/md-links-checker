@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.1 (2026-09-29)
+
 - Links inside indented code blocks (four spaces, after a blank line) are no
   longer checked. Inside list items they still are.
 
