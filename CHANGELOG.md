@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Links inside indented code blocks (four spaces, after a blank line) are no
+  longer checked. Inside list items they still are.
+
 ## 0.2.0 (2026-09-28)
 
 - Added `--root <dir>` (or `--root=<dir>`), which sets where links starting with

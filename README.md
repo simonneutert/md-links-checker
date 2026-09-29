@@ -12,7 +12,7 @@ definitions (`[ref]: ./a.md`) and HTML (`<a href="./a.md">`). A link fails when
 its target file doesn't exist, or when its `#anchor` doesn't match a heading in
 the target Markdown file (using GitHub's anchor rules, including `-1` suffixes
 for repeated headings) or an HTML `id` or `name` in it, or when it is empty
-(`[text]()`). Links inside fenced code blocks, inline code and HTML comments are
+(`[text]()`). Links inside code blocks, inline code and HTML comments are
 ignored. See [Limitations](#limitations) for what else is not covered.
 
 **External links** are not checked: the ones with a scheme (`https:`, `mailto:`,
@@ -150,8 +150,8 @@ The checker reads Markdown with patterns, not a full parser, so some cases are
 out of scope:
 
 - **External links** are listed with `--external`, never fetched.
-- **Indented code blocks** (four spaces) are not recognized: links inside them
-  are checked. Use fenced code blocks instead.
+- **Indented code blocks inside list items** are not recognized: links inside
+  them are checked. Use fenced code blocks there instead.
 - **Links starting with `/`** resolve from the Git repository you run the
   checker in, not the one the file is in, unless `--root` is given.
 - **HTML** is limited to `<a href="…">` with a quoted value. `<img src>`,
