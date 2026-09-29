@@ -3,7 +3,7 @@
  * HTML `<a href>`: the target must exist, and a `#anchor` into a Markdown file
  * must match one of its headings. An empty link (`[text]()`) is reported too.
  * Links with a scheme (`https:`, `mailto:`, `jsr:`) are not checked, nor are
- * links in fenced code blocks, code spans or HTML comments.
+ * links in code blocks, code spans or HTML comments.
  *
  * Directories are walked for `.md` and `.markdown` files. Inside a Git
  * repository, files Git ignores are skipped (git needs `--allow-run=git`);
@@ -61,22 +61,36 @@ export function slug(heading: string): string {
     .replaceAll(" ", "-");
 }
 
-/** The lines of `markdown`, with fenced code blocks and HTML comments blanked
- * out. A fence closes only with the same character, at least as long as it
- * opened. */
+/** The lines of `markdown`, with code blocks and HTML comments blanked out. A
+ * fence closes only with the same character, at least as long as it opened.
+ * An indented code block starts after a blank line, outside a list. */
 function prose(markdown: string): string[] {
   let fence = "";
+  let code = false;
+  let blank = true;
+  // ponytail: in a list, indented lines count as prose, so code nested in a
+  // list item is still read; track item indents if that bites.
+  let list = false;
   const lines = markdown.split("\n").map((line) => {
     const marker = line.match(/^\s*(`{3,}|~{3,})/)?.[1];
-    if (!fence) {
-      fence = marker ?? "";
-      return marker ? "" : line;
+    if (fence) {
+      if (
+        marker?.[0] === fence[0] && marker.length >= fence.length &&
+        line.trim() === marker
+      ) fence = "";
+      return "";
     }
-    if (
-      marker?.[0] === fence[0] && marker.length >= fence.length &&
-      line.trim() === marker
-    ) fence = "";
-    return "";
+    if (!line.trim()) {
+      blank = true;
+      return line;
+    }
+    code = /^( {4}|\t)/.test(line) && !list && (blank || code);
+    if (/^\s*([-*+]|\d+[.)])\s/.test(line)) list = true;
+    else if (blank && /^\S/.test(line)) list = false;
+    blank = false;
+    if (code) return "";
+    fence = marker ?? "";
+    return marker ? "" : line;
   });
   return lines.join("\n")
     .replace(/<!--[\s\S]*?-->/g, (comment) => comment.replace(/[^\n]/g, ""))
@@ -133,8 +147,8 @@ const HREF = /<a\s(?:[^>]*\s)?href=(?:"([^"]*)"|'([^']*)')/gi;
 /** A link with a scheme (`https:`) or to another host (`//x.test`). */
 const EXTERNAL = /^([a-z][a-z0-9+.-]*:|\/\/)/i;
 
-/** The links in a Markdown file with their line, in order, skipping fenced
- * code blocks, code spans and HTML comments. */
+/** The links in a Markdown file with their line, in order, skipping code
+ * blocks, code spans and HTML comments. */
 async function links(
   file: string,
 ): Promise<{ line: number; link: string }[]> {

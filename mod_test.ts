@@ -138,12 +138,22 @@ Deno.test("checkLinks skips code and HTML comments", async () => {
     "[skipped](./gone.md)",
     "````",
     "[gone](./gone.md)",
+    "    [gone](./gone.md) continues the paragraph",
+    "",
+    "    [skipped](./gone.md) is indented code",
+    "",
+    "    [skipped](./gone.md)",
+    "- item",
+    "",
+    "    [gone](./gone.md) continues the item",
   ];
   await withFiles({ "a.md": a.join("\n") }, async (dir) => {
     assertEquals(await problems(dir), [
       "4: #commented-out (missing anchor)",
       "4: #fenced (missing anchor)",
       "11: ./gone.md (missing file)",
+      "12: ./gone.md (missing file)",
+      "19: ./gone.md (missing file)",
     ]);
   });
 });
