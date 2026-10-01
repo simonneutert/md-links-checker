@@ -17,9 +17,9 @@ Checks relative links in Markdown and MDX files: inline (`[text](./a.md)`),
 images, reference definitions (`[ref]: ./a.md`), HTML (`<a href="./a.md">`) and,
 in MDX, JSX (`<a href>`, `<Link to>`). A link fails when its target file doesn't
 exist, or when its `#anchor` doesn't match a heading in the target Markdown file
-(including `-1` suffixes for repeated headings) or an HTML `id` or `name` in it,
-or when it is empty (`[text]()`). A reference without a definition
-(`[text][nope]`) fails too.
+(including `-1` suffixes for repeated headings) or an HTML `id` or `<a name>` in
+it, or an `id` or `<a name>` in the target HTML page, or when it is empty
+(`[text]()`). A reference without a definition (`[text][nope]`) fails too.
 
 Files are parsed as CommonMark with GitHub's extensions
 ([micromark](https://github.com/micromark/micromark)), so code, comments, front
@@ -125,16 +125,25 @@ The same docs often end up on a site, too.
 
 On a static site, `/images/x.png` or `/posts/2022/02/23/foo/` only exist in the
 build output. Build first, then check the Markdown sources with `--root` set to
-the build output. A link into an HTML page counts if the file or folder exists;
-its `#anchor` is not checked.
+the build output. A link into an HTML page needs the file or folder to exist,
+and its `#anchor` an `id` (or `<a name>`) in the page, or in the folder's
+`index.html`. Browsers match ids exactly, so `#Setup` misses `id="setup"`;
+`#top` always works. Character references are decoded first, so `id="q&amp;a"`
+is `#q&a`.
 
 [quickblog](https://github.com/simonneutert/deno-quickblog) builds into `dist/`,
 and copies `public/` into it:
 
 ```sh
 deno run -A jsr:@simonneutert/quickblog build
-deno run -R --allow-run=git jsr:@simonneutert/md-links-checker --root dist posts
+deno run -R --allow-run=git jsr:@simonneutert/md-links-checker --root dist \
+  posts pages index.md nav.md footer.md
 ```
+
+quickblog doesn't turn `.md` links into `.html`: `[About](./pages/about.md)`
+passes the check, because the file exists, but is broken on the site. Link to
+`/about.html` instead. Check the README in a separate run without `--root`,
+since GitHub resolves its `/` links from the repository.
 
 [Jekyll](https://jekyllrb.com) builds into `_site/`:
 
@@ -208,8 +217,10 @@ deno publish --dry-run # check the package before publishing
 - **Links starting with `/`** resolve from the Git repository you run the
   checker in, not the one the file is in, unless `--root` is given.
 - **Raw HTML** is read with patterns: only `<a href="…">` with a quoted value is
-  a link. `<img src>`, unquoted `href=./a.md` and entities such as `&amp;` in an
-  `href` are not handled.
+  a link, also in an HTML file named on the command line. `<img src>`, unquoted
+  `href=./a.md` and entities such as `&amp;` in an `href` are not handled. In an
+  HTML page, `id`s are read with patterns too, so ids added by JavaScript are
+  not seen.
 - **MDX**: JSX links are `<a href>` and `<Link to>` with a plain string value.
   `import` paths and `@site/` aliases are not checked, and a Docusaurus URL
   (`/docs/intro`) needs the build output as `--root`.

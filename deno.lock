@@ -16,7 +16,8 @@
     "npm:mdast-util-to-string@4.0.0": "4.0.0",
     "npm:micromark-extension-frontmatter@2.0.0": "2.0.0",
     "npm:micromark-extension-gfm@3.0.0": "3.0.0",
-    "npm:micromark-extension-mdx@2.1.0": "2.1.0"
+    "npm:micromark-extension-mdx@2.1.0": "2.1.0",
+    "npm:parse-entities@4.0.2": "4.0.2"
   },
   "jsr": {
     "@std/assert@1.0.19": {
@@ -775,7 +776,8 @@
       "npm:mdast-util-to-string@4.0.0",
       "npm:micromark-extension-frontmatter@2.0.0",
       "npm:micromark-extension-gfm@3.0.0",
-      "npm:micromark-extension-mdx@2.1.0"
+      "npm:micromark-extension-mdx@2.1.0",
+      "npm:parse-entities@4.0.2"
     ]
   }
 }
