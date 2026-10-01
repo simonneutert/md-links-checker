@@ -15,5 +15,10 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Tag matches the version in deno.json
+        run: test "$GITHUB_REF_NAME" = "v$(jq -r .version deno.json)"
+      - run: deno fmt --check
+      - run: deno lint
+      - run: deno doc --lint mod.ts
       - run: deno task test
-      - run: npx jsr publish
+      - run: deno publish
