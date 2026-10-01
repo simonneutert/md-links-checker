@@ -146,6 +146,59 @@ Deno.test("checkLinks matches anchors like GitHub", async () => {
   });
 });
 
+Deno.test("checkLinks matches anchors in HTML like a browser", async () => {
+  const a = [
+    "[ok](/p.html#Setup) [bad](/p.html#setup) [ok](/p.html#top)",
+    "[ok](/p.html#old) [ok](/p.html#min) [ok](/p.html#caf%C3%A9)",
+    "[bad](/p.html#gone) [ok](/p.htm#x) [ok](/posts/foo/#x)",
+    "[ok](/posts/foo#x) [bad](/posts/foo/#y) [ok](/bare/#any)",
+    "[ok](/p.html#q) [ok](/p.html#first) [ok](/p.html#second)",
+    "[bad](/p.html#query) [bad](/p.html#fake) [bad](/p.html#viewport)",
+    "[gone](/d.md#x) [ok](/up/#x) [ok](#raw) <a id=raw></a>",
+    "[ok](/p.html#tight) [ok](/p.html#tighter) [ok](/p.html#q&a)",
+    "[ok](/p.html#caf%C3%A9s) [ok](/p.html#x&amp=1) [bad](/p.html#q%26amp%3Ba)",
+  ];
+  const page = "<h2 id=\"Setup\">S</h2> <a name='old'></a> <h3 id=min>M</h3>" +
+    '<p id="café"></p> <!-- <p id="gone"></p> -->' +
+    '<input id="q" name="query"> <a id="first" name="second"></a>' +
+    '<div title="see id=fake" data-x=\'>\'></div> <meta name="viewport">' +
+    '<p class="h"id="tight"></p> <p title=\'x\'id=tighter></p>' +
+    '<p id="q&amp;a"></p> <p id="caf&#233;s"></p> <p id="x&amp=1"></p>';
+  await withFiles({
+    "a.md": a.join("\n"),
+    "p.html": page,
+    "p.htm": '<p id="x"></p>',
+    "posts/foo/index.html": '<p id="x"></p>',
+    "bare/": "",
+    "d.md/index.html": '<p id="x"></p>',
+    // Wrong case: a Linux server would not find it, so it is no index.html.
+    "up/INDEX.HTML": '<p id="y"></p>',
+  }, async (dir) => {
+    assertEquals(await problems(dir), [
+      "1:21: /p.html#setup (missing anchor)",
+      "3:1: /p.html#gone (missing anchor)",
+      "4:20: /posts/foo/#y (missing anchor)",
+      "6:1: /p.html#query (missing anchor)",
+      "6:22: /p.html#fake (missing anchor)",
+      "6:42: /p.html#viewport (missing anchor)",
+      "7:1: /d.md#x (missing file)",
+      "9:48: /p.html#q%26amp%3Ba (missing anchor)",
+    ]);
+  });
+});
+
+Deno.test("checkLinks checks the links in an HTML file it is given", async () => {
+  const page = '<h2 id="x">X</h2>\n<!-- <a href="./gone.md"> -->\n' +
+    '<p><a href="./b.md">ok</a> <a href="./gone.md">bad</a> ' +
+    '<a href="#x">ok</a> <a href="#y">bad</a></p>';
+  await withFiles({ "p.html": page, "b.md": "" }, async (dir) => {
+    assertEquals(await problems(dir, { name: "p.html" }), [
+      "3:28: ./gone.md (missing file)",
+      "3:76: #y (missing anchor)",
+    ]);
+  });
+});
+
 Deno.test("checkLinks follows Bitbucket's anchors with --flavor", async () => {
   const a = "[ok](#markdown-header-setup) [ok](#markdown-header-setup_1) " +
     "[bad](#setup)\n\n# Setup\n# Setup\n";

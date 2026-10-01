@@ -3,9 +3,10 @@
  * Bitbucket. Checks relative links in Markdown and MDX files: inline links,
  * images, reference definitions, HTML `<a href>` and, in MDX, JSX `<a href>`
  * and `<Link to>`. The target must exist, and a `#anchor` into a Markdown file
- * must match one of its headings or an HTML `id`. Empty links (`[text]()`) and
- * references to a missing definition (`[text][nope]`) are reported too. Links
- * with a scheme (`https:`, `mailto:`, `jsr:`) are not checked.
+ * must match one of its headings or an HTML `id`; into an HTML file, an `id`
+ * or `<a name>`. Empty links (`[text]()`) and references to a missing
+ * definition (`[text][nope]`) are reported too. Links with a scheme (`https:`,
+ * `mailto:`, `jsr:`) are not checked.
  *
  * Files are parsed as CommonMark with GitHub's extensions, so code, comments,
  * front matter and HTML blocks are skipped as GitHub skips them. `.mdx` files
@@ -17,13 +18,14 @@
  * repository, files Git ignores are skipped (git needs `--allow-run=git`);
  * outside one, or with `--no-gitignore`, dot folders and `node_modules` are
  * skipped instead. Git is optional. Files named on the command line are always
- * checked.
+ * checked; an HTML file named there has its `<a href>` links checked.
  *
  * `--external` lists the links with a scheme without checking them; `--json`
  * prints the result as JSON on stdout. `--root <dir>` sets where links starting
  * with `/` resolve from: for a static site, check the posts against the build
  * output (`--root dist`, `_site` for Jekyll, `public` for Hugo) after building.
- * Links into HTML files are checked for the file, not the anchor.
+ * A `#anchor` into an HTML file, or a folder with an `index.html`, must match
+ * an `id` in it exactly, as browsers match it.
  *
  * ```sh
  * deno run -R --allow-run=git jsr:@simonneutert/md-links-checker README.md docs
@@ -55,6 +57,7 @@ import { toString } from "mdast-util-to-string";
 import { frontmatter } from "micromark-extension-frontmatter";
 import { gfm } from "micromark-extension-gfm";
 import { mdx as mdxSyntax } from "micromark-extension-mdx";
+import { parseEntities } from "parse-entities";
 
 /** A broken link. `"wrong case"` is a file that only exists on a
  * case-insensitive file system, like macOS's default: `./readme.md` for
@@ -133,8 +136,13 @@ interface Parsed {
 
 /** An HTML comment. */
 const HTML_COMMENT = /<!--[\s\S]*?-->/g;
-/** An HTML `id` or `name` attribute, as in `<a id="x">`. */
-const HTML_ID = /<[a-z][^>]*\s(?:id|name)=["']([^"']+)["']/gi;
+/** An HTML start tag and its attributes, as in `<a id="x" title='>'>`. */
+const TAG = /<([a-z][\w-]*)((?:"[^"]*"|'[^']*'|[^<>"'])*)>/gi;
+/** An HTML attribute, `id="x"`, `id='x'`, unquoted as minified HTML writes it
+ * (`id=x`), or without a value. It follows a space or, as browsers allow and
+ * minifiers write, a quoted value (`class="h"id="x"`). */
+const ATTRIBUTE =
+  /(?:\s|(?<=["']))([^\s"'>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
 /** An HTML link, `<a href="./a.md">` or `<a class="x" href='./a.md'>`. */
 const HREF = /<a\s(?:[^>]*\s)?href=(?:"([^"]*)"|'([^']*)')/gi;
 /** A full or collapsed reference, `[text][label]` or `[label][]`, not escaped
@@ -232,17 +240,9 @@ function parse(markdown: string, mdx: boolean, flavor: Flavor): Parsed {
         heading(node);
         break;
       case "html": {
-        const html = source.replace(
-          HTML_COMMENT,
-          (c) => c.replace(/[^\n]/g, " "),
-        );
-        for (const match of html.matchAll(HREF)) {
-          const link = match[1] ?? match[2];
-          parsed.links.push({ ...at(start, html, match.index), link });
-        }
-        for (const [, id] of html.matchAll(HTML_ID)) {
-          parsed.anchors.add(id.toLowerCase());
-        }
+        const html = uncomment(source);
+        parsed.links.push(...hrefs(html, start));
+        for (const id of htmlIds(html)) parsed.anchors.add(id.toLowerCase());
         break;
       }
       case "text":
@@ -274,18 +274,56 @@ function parse(markdown: string, mdx: boolean, flavor: Flavor): Parsed {
   return parsed;
 }
 
+/** `html` with its comments blanked out, keeping lines and columns. */
+function uncomment(html: string): string {
+  return html.replace(HTML_COMMENT, (c) => c.replace(/[^\n]/g, " "));
+}
+
+/** The `<a href>` links in `html`, which starts at `start`. */
+function hrefs(html: string, start: At): Link[] {
+  return [...html.matchAll(HREF)].map((match) => ({
+    ...at(start, html, match.index),
+    link: match[1] ?? match[2],
+  }));
+}
+
+/** The `id`s, and the `name`s of `<a>`s, in `html`, with character references
+ * decoded as browsers decode them (`q&amp;a` is `q&a`); browsers jump to no
+ * other `name`. */
+function htmlIds(html: string): string[] {
+  const ids = [];
+  for (const [, tag, attributes] of html.matchAll(TAG)) {
+    for (const [, name, ...value] of attributes.matchAll(ATTRIBUTE)) {
+      const id = value.find(Boolean);
+      const key = name.toLowerCase();
+      if (id && (key === "id" || (key === "name" && /^a$/i.test(tag)))) {
+        ids.push(parseEntities(id, { attribute: true }));
+      }
+    }
+  }
+  return ids;
+}
+
 /** A Markdown file name: `.md`, `.mdx` or `.markdown`, in any case. */
 const MARKDOWN = /\.(md|mdx|markdown)$/i;
+/** An HTML file name, `.html` or `.htm`. */
+const HTML = /\.html?$/i;
 /** An MDX file name. */
 const MDX = /\.mdx$/i;
 /** A link with a scheme (`https:`) or to another host (`//x.test`). */
 const EXTERNAL = /^([a-z][a-z0-9+.-]*:|\/\/)/i;
 
 /** The parsed Markdown file `file`, read as MDX for `.mdx` files or with the
- * `docusaurus` flavor. */
+ * `docusaurus` flavor; for an HTML file, its `<a href>`s and ids as written. */
 async function read(file: string, flavor: Flavor): Promise<Parsed> {
+  const text = await Deno.readTextFile(file);
+  if (HTML.test(file)) {
+    const html = uncomment(text);
+    const links = hrefs(html, { line: 1, column: 1 });
+    return { links, anchors: new Set(htmlIds(html)), problems: [] };
+  }
   const mdx = flavor === "docusaurus" || MDX.test(file);
-  return parse(await Deno.readTextFile(file), mdx, flavor);
+  return parse(text, mdx, flavor);
 }
 
 /** `decodeURIComponent`, or `text` as is when it has a stray `%`. */
@@ -366,12 +404,23 @@ export async function checkLinks(
     if (!await exists(target)) return "missing file";
     if (path && !await sameCase(base, target)) return "wrong case";
     // A bare `#` links to the top of the page, so `anchor` is not empty.
-    if (!anchor || !MARKDOWN.test(target)) return;
-    const found = await parsedOf(target);
+    if (!anchor) return;
+    // A folder is served as its index.html, like `/posts/foo/` on a site,
+    // spelled so, as Linux servers need. A folder named `x.md` is no page.
+    const index = join(target, "index.html");
+    const page = !MARKDOWN.test(target) && await exists(index) &&
+        await sameCase(target, index)
+      ? index
+      : target;
+    if (!MARKDOWN.test(page) && !HTML.test(page)) return;
+    const found = await parsedOf(page);
     if (found === null) return "missing file";
-    if (!found.anchors.has(decode(anchor).toLowerCase())) {
-      return "missing anchor";
-    }
+    const id = decode(anchor);
+    const ok = HTML.test(page)
+      // Browsers match an id exactly, and `#top` is the top of any page.
+      ? found.anchors.has(id) || id.toLowerCase() === "top"
+      : found.anchors.has(id.toLowerCase());
+    if (!ok) return "missing anchor";
   }
 
   const problems: Problem[] = [];

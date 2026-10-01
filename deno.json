@@ -1,6 +1,6 @@
 {
   "name": "@simonneutert/md-links-checker",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "MIT",
   "exports": "./mod.ts",
   "tasks": {
@@ -20,7 +20,8 @@
     "mdast-util-to-string": "npm:mdast-util-to-string@4.0.0",
     "micromark-extension-frontmatter": "npm:micromark-extension-frontmatter@2.0.0",
     "micromark-extension-gfm": "npm:micromark-extension-gfm@3.0.0",
-    "micromark-extension-mdx": "npm:micromark-extension-mdx@2.1.0"
+    "micromark-extension-mdx": "npm:micromark-extension-mdx@2.1.0",
+    "parse-entities": "npm:parse-entities@4.0.2"
   },
   "publish": {
     "exclude": [

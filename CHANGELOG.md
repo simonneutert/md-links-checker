@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- A `#anchor` into an HTML page, as in `--root dist`, must match an `id` or
+  `<a name>` in it, exactly as browsers match it; `#top` always works. A folder
+  link (`/posts/foo/#x`) is checked against its `index.html`. Unquoted ids, as
+  in minified HTML (`<h2 id=x>`), and ids right after a quoted value
+  (`<h2 class="h"id="x">`) count, in Markdown too. In both, every `id` in a tag
+  counts, not only the last, `id=` inside another attribute's value doesn't, and
+  `name` only counts on `<a>`, as in browsers. Character references in ids are
+  decoded as browsers decode them: `id="q&amp;a"` is `#q&a`. An HTML file named
+  on the command line is read the same way, and its `<a href>` links are
+  checked.
+
+### Other
+
+- The quickblog recipe checks pages, `index.md`, `nav.md` and `footer.md` too,
+  and warns that `.md` links pass but break on the built site.
+
 ## 0.3.0 (2026-10-01)
 
 Markdown is now parsed with [micromark](https://github.com/micromark/micromark)
