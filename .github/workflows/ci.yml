@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -16,6 +16,20 @@ jobs:
       - run: deno fmt --check
       - run: deno lint
       - run: deno check mod.ts
+      - run: deno doc --lint mod.ts
+      - run: deno publish --dry-run
+
+  test:
+    # macOS ignores case like many dev machines, Windows uses `\` paths.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
       - run: deno task test
       - run: deno run -R --allow-run=git mod.ts
-      - run: deno publish --dry-run

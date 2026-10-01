@@ -1,6 +1,65 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-10-01)
+
+Markdown is now parsed with [micromark](https://github.com/micromark/micromark)
+(CommonMark, GitHub's extensions, front matter, MDX) instead of patterns, so
+links and headings are found the way GitHub finds them.
+
+### Breaking
+
+- Problems and external links have a `column`, and the output reads
+  `file:line:column:`.
+- `slug(text, flavor)` takes a heading's plain text, not its Markdown.
+- `{#id}` and comment ids on headings only count with `--flavor docusaurus`.
+  GitHub doesn't support them: `## Setup {#install}` is `#setup-install` there.
+- A reference without a definition (`[text][nope]`, but not `m[0][1]`) is
+  reported as `undefined reference`, and an `.mdx` file the MDX parser rejects
+  as `invalid MDX`.
+- `[ref]: <url> text` with text after the URL is no longer a definition, as in
+  CommonMark.
+- Bare URLs (`https://x.test`, `www.x.test`) are listed by `--external`, as
+  GitHub links them.
+
+### Added
+
+- `--flavor github|gitlab|bitbucket|docusaurus` picks the heading anchors.
+  GitLab's are GitHub's. `bitbucket` adds the `markdown-header-` prefix.
+  `docusaurus` reads every file as MDX, as Docusaurus does, and adds custom
+  heading ids: `## Setup {#install}` and `## Setup {/* #install */}`. HTML
+  comments are dropped in MDX, as by Docusaurus 3 by default, so
+  `## Setup <!-- #install -->` is `#setup`.
+- Directories are walked for `.mdx` files too, which are parsed as MDX: JSX
+  links (`<a href>`, `<Link to>`), `id`s and `<a name>`s are read, `{/* … */}`
+  comments are skipped, and indented lines are not code.
+- Images (`![alt](./a.png)`) are checked.
+- `--help` (`-h`). An unknown option prints the usage too. Flags are parsed with
+  `@std/cli`, so `--` ends the options: `-- -draft.md` checks a file named
+  `-draft.md`.
+
+### Fixed
+
+- Front matter, YAML (`---`) or TOML (`+++`), was read as Markdown: its closing
+  `---` turned the line above into a heading (`id: intro` became `#id-intro`),
+  and links in it were checked.
+- A file starting with a byte order mark lost its first heading as an anchor.
+- Escaped links (`\[x](./a.md)`), links in HTML blocks and links in code blocks
+  inside quotes or list items were checked.
+- `` `<!--` `` in a code span hid the links up to a later `-->`.
+- Headings indented by up to three spaces, in quotes, with entities
+  (`A &amp; B`) or `_emphasis_` got no or the wrong anchor.
+- Definitions in quotes (`> [ref]: ./a.md`) and multi-line links were missed.
+- Reading a directory named like `x.md` for anchors crashed on Windows.
+
+### Other
+
+- The README states who the checker is for: documentation in a repository, read
+  on GitHub, GitLab or Bitbucket, and how to check a
+  [Docusaurus](https://docusaurus.io) site.
+- The JSR package no longer ships the tests and the lockfile.
+- CI runs the tests on Linux, macOS and Windows, and `deno doc --lint`.
+  Publishing checks that the tag matches `deno.json`. `deno task test` fails
+  below 80% coverage.
 
 ## 0.2.1 (2026-09-29)
 
