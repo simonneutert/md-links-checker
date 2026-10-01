@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0 (2026-10-01)
+
 ### Added
 
 - A `#anchor` into an HTML page, as in `--root dist`, must match an `id` or
