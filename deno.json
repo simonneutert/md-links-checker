@@ -14,7 +14,7 @@
     "@std/path": "jsr:@std/path@1.1.6",
     "github-slugger": "npm:github-slugger@2.0.0",
     "mdast-util-frontmatter": "npm:mdast-util-frontmatter@2.0.1",
-    "mdast-util-from-markdown": "npm:mdast-util-from-markdown@2.0.3",
+    "mdast-util-from-markdown": "npm:mdast-util-from-markdown@2.1.0",
     "mdast-util-gfm": "npm:mdast-util-gfm@3.1.0",
     "mdast-util-mdx": "npm:mdast-util-mdx@3.0.0",
     "mdast-util-to-string": "npm:mdast-util-to-string@4.0.0",
